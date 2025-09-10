@@ -7,17 +7,13 @@ resources = require('resources')
 files = require('files')
 json = require('jsonlua')
 
-require('lib\\helpers')
-require('lib\\settings')
-require('lib\\logging')
-require('lib\\gear')
-require('lib\\mounts')
-require('lib\\trusts')
-require('lib\\triggers')
-
-local BLU_BATTLE_COMMAND    = buildSelfCommand('gear load battle no-weapons')
-local BLU_CASTING_COMMAND   = buildSelfCommand('gear load cleave-mab no-weapons')
-local BLU_PULLING_COMMAND   = buildSelfCommand('gear load cleave-dt no-weapons')
+require('lib/helpers')
+require('lib/settings')
+require('lib/logging')
+require('lib/gear')
+require('lib/mounts')
+require('lib/trusts')
+require('lib/triggers')
 
 --------------------------------------------------------------------------------------
 -- Write an object to a file as JSON
@@ -44,10 +40,6 @@ function unbindKeys(skipExecute)
         .. 'unbind @t;'     -- Windows+T
         .. 'unbind @~t;'    -- Windows+Shift+T
         
-        .. 'unbind @~1;'    -- Windows+Shift+1
-        .. 'unbind @~2;'    -- Windows+Shift+2
-        .. 'unbind @~3;'    -- Windows+Shift+3
-
     if not skipExecute then
         windower.send_command(command)
     end
@@ -63,10 +55,6 @@ function bindKeys()
     table.insert(commands, 'bind @~m '  .. buildSelfCommand('movementspeedall'))  -- Windows+Shift+M
     table.insert(commands, 'bind @t '   .. buildSelfCommand('calltrusts'))        -- Windows+T
     table.insert(commands, 'bind @~t '  .. buildSelfCommand('releasetrusts'))     -- Windows+Shift+T
-
-    table.insert(commands, 'bind @~1 ' .. BLU_BATTLE_COMMAND)       -- Windows+Shift+1: Default gear for BLU (TEMP)
-    table.insert(commands, 'bind @~2 ' .. BLU_CASTING_COMMAND)      -- Windows+Shift+2: Magic accuracy bonus gear for BLU (TEMP)
-    table.insert(commands, 'bind @~3 ' .. BLU_PULLING_COMMAND)      -- Windows+Shift+3: Pulling gear for BLU (TEMP)
 
     for i, command in ipairs(commands) do
         windower.send_command(command)
