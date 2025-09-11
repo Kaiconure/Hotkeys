@@ -1,4 +1,5 @@
 settings = {}
+shared_settings = {}
 
 function getSettingsFolder(playerName)
     return '.\\settings\\' .. playerName .. '\\'

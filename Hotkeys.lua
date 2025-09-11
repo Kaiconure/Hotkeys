@@ -1,7 +1,13 @@
-_addon.version = '0.1.4'
+_addon.version = '1.0.2'
 _addon.name = 'Hotkeys'
 _addon.author = 'LeileDev'
 _addon.commands = { 'hotkeys', 'hk' }
+
+-- Setup the 
+local addon_path = windower.addon_path:gsub('\\', '/'):gsub('//', '/')
+package.cpath = package.cpath .. ';' .. (addon_path .. 'dll/?.dll')
+
+hotkeys_native = require('hotkeys_native')
 
 resources = require('resources')
 files = require('files')
@@ -14,20 +20,27 @@ require('lib/gear')
 require('lib/mounts')
 require('lib/trusts')
 require('lib/triggers')
+require('lib/window')
 
 --------------------------------------------------------------------------------------
 -- Write an object to a file as JSON
 function writeJsonToFile(fileName, obj)
     local file = files.new(fileName)
-    file:write(json.stringify(obj))
+    file:write(json.stringify(obj), true)
 end
 
 --------------------------------------------------------------------------------------
 -- Saves settings. If no settings are provided, the global will be used.
-function saveSettings(settingsToSave)
+function saveSettings(settingsToSave, sharedSettingsToSave)
     local player = windower.ffxi.get_player()
+
     local fileName = getSettingsFileName(player.name)
     writeJsonToFile(fileName, settingsToSave or settings)
+
+    fileName = getSettingsFileName("_all")
+    writeJsonToFile(fileName, sharedSettingsToSave or shared_settings)
+
+    bindKeys()
 end
 
 function unbindKeys(skipExecute)
@@ -59,6 +72,8 @@ function bindKeys()
     for i, command in ipairs(commands) do
         windower.send_command(command)
     end
+
+    window_bind_keys()
 end
 
 ---------------------------------------------------------------------
@@ -84,6 +99,9 @@ function load()
                     'Valaineral',
                 }
             }
+        },
+        windows = {
+
         }
     }
 
@@ -93,10 +111,21 @@ function load()
         --saveSettings(newSettings)
     else
         writeMessage('Loading configured settings for [' .. text_player(player.name) .. ']')
-        newSettings = json.parse(file:read())
+        newSettings = json.parse(file:read()) or newSettings
+
+        newSettings.windows = newSettings.windows or {}
     end
 
     settings = newSettings
+
+    new_shared_settings = {}
+    local shared_settings_file_name = getSettingsFileName('_all')
+    file = files.new(shared_settings_file_name)
+    if file:exists() then
+        new_shared_settings = json.parse(file:read()) or new_shared_settings
+    end
+
+    shared_settings = new_shared_settings
 
     -- For now we're forcing the settings language to English
     settings.language = (settings.language or 'en') -- windower.ffxi.get_info().language
@@ -161,6 +190,8 @@ windower.register_event('addon command', function (command, ...)
         handler = command_trust
     elseif command == 'gear' then
         handler = command_gear
+    elseif command == 'windows' or command == 'window' or command == 'win' then
+        handler = command_window
     end
 
     if handler ~= nil then

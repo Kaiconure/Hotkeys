@@ -6,3 +6,11 @@
 /functions.txt
 /symbols.txt
 /sample-data/*
+/hotkeys_native/.vs/
+/hotkeys_native/Debug/
+/hotkeys_native/Release/
+
+/hotkeys_native/hotkeys_native/
+/dll/*
+
+*.user
