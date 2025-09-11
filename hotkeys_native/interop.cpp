@@ -78,6 +78,12 @@ bool Interop::ActivateWindow(lua_State* L, const std::string& processName, const
     EnumWindows(EnumWindowsProc, (LPARAM)&wi);
     if (wi.hWndResult)
     {
+        // Restore the window first if it is minimized ("iconic" in win32 speak)
+        if (IsIconic(wi.hWndResult))
+        {
+            ShowWindow(wi.hWndResult, SW_RESTORE);
+        }
+
         BringWindowToTop(wi.hWndResult);
         SetForegroundWindow(wi.hWndResult);
         return true;

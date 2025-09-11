@@ -1,14 +1,19 @@
-_addon.version = '1.0.2'
+_addon.version = '1.0.3'
 _addon.name = 'Hotkeys'
 _addon.author = 'LeileDev'
 _addon.commands = { 'hotkeys', 'hk' }
 
--- Setup the 
-local addon_path = windower.addon_path:gsub('\\', '/'):gsub('//', '/')
+-- Setup the DLL load path
+addon_path = windower.addon_path:gsub('\\', '/'):gsub('//', '/')
 package.cpath = package.cpath .. ';' .. (addon_path .. 'dll/?.dll')
+
+globals = {
+    latest_npc_activation = 0
+}
 
 hotkeys_native = require('hotkeys_native')
 
+packets = require('packets')
 resources = require('resources')
 files = require('files')
 json = require('jsonlua')
@@ -20,6 +25,7 @@ require('lib/gear')
 require('lib/mounts')
 require('lib/trusts')
 require('lib/triggers')
+require('lib/targeting')
 require('lib/window')
 
 --------------------------------------------------------------------------------------
@@ -52,6 +58,8 @@ function unbindKeys(skipExecute)
         .. 'unbind @~m;'    -- Windows+Shift+M
         .. 'unbind @t;'     -- Windows+T
         .. 'unbind @~t;'    -- Windows+Shift+T
+        .. 'unbind @a;'     -- Windows+Shift+A
+        .. 'unbind @~a;'    -- Windows+Shift+A
         
     if not skipExecute then
         windower.send_command(command)
@@ -64,10 +72,12 @@ function bindKeys()
     local commands = {}
 
     -- Add the binds
-    table.insert(commands, 'bind @m '   .. buildSelfCommand('movementspeed'))     -- Windows+M
-    table.insert(commands, 'bind @~m '  .. buildSelfCommand('movementspeedall'))  -- Windows+Shift+M
-    table.insert(commands, 'bind @t '   .. buildSelfCommand('calltrusts'))        -- Windows+T
-    table.insert(commands, 'bind @~t '  .. buildSelfCommand('releasetrusts'))     -- Windows+Shift+T
+    table.insert(commands, 'bind @m '   .. buildSelfCommand('movementspeed'))           -- Windows+M
+    table.insert(commands, 'bind @~m '  .. buildSelfCommand('movementspeedall'))        -- Windows+Shift+M
+    table.insert(commands, 'bind @t '   .. buildSelfCommand('calltrusts'))              -- Windows+T
+    table.insert(commands, 'bind @~t '  .. buildSelfCommand('releasetrusts'))           -- Windows+Shift+T
+    table.insert(commands, 'bind @a '   .. buildSelfCommand('targeting activate'))      -- Windows+A
+    table.insert(commands, 'bind @~a '  .. buildSelfCommand('targeting activateall'))   -- Windows+Shift+A
 
     for i, command in ipairs(commands) do
         windower.send_command(command)
@@ -192,7 +202,10 @@ windower.register_event('addon command', function (command, ...)
         handler = command_gear
     elseif command == 'windows' or command == 'window' or command == 'win' then
         handler = command_window
+    elseif command == 'targeting' or command == 't' then
+        handler = command_targeting
     elseif command == 'echo' then
+        -- The echo command simply outputs whatever message you sent to the addon
         writeMessage(table.concat(args, ' '))
     end
 
@@ -238,4 +251,26 @@ end)
 -- Reload when an action is performed
 windower.register_event('action', function(action)
     triggers_onAction(action)
+end)
+
+---------------------------------------------------------------------
+-- These are the packet/chunk id's of npc activation events
+local NPC_ACTIVATION_PACKETS =
+{
+    0x032,      -- NPC Interaction 1
+    0x033,      -- String NPC Interaction
+    0x034,      -- NPC Interaction 2
+    0x04C,      -- Auction House Menu
+    --0x052,      -- NPC Release
+    --0x05C       -- Dialogue Information
+}
+
+---------------------------------------------------------------------
+-- Incoming chunks (chunks are individual pieces of a packet)
+windower.register_event('incoming chunk', function (id, data)
+    if
+        arrayIndexOf(NPC_ACTIVATION_PACKETS, id)
+    then
+        globals.latest_npc_activation = os.clock()
+     end
 end)
