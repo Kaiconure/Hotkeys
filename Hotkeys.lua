@@ -1,4 +1,4 @@
-_addon.version = '1.0.3'
+_addon.version = '1.0.4'
 _addon.name = 'Hotkeys'
 _addon.author = 'LeileDev'
 _addon.commands = { 'hotkeys', 'hk' }
@@ -65,6 +65,8 @@ function unbindKeys(skipExecute)
         windower.send_command(command)
     end
 
+    window_unbind_keys()
+
     return command
 end
 
@@ -93,6 +95,10 @@ function load()
     if player == nil then
         return
     end
+
+    -- Do this here so we can unbind existing keys in case key combos change.
+    -- This shold be a no-op on initial load.
+    unbindKeys()
 
     local fileName = getSettingsFileName(player.name)
     local newSettings = {

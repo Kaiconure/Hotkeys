@@ -1,3 +1,34 @@
+local BINDS_TO_KEY_NAME = 
+{
+    ['^'] = 'Ctrl',
+    ['!'] = 'Alt',
+    ['@'] = 'Win',
+    ['#'] = 'Apps',
+    ['~'] = 'Shift'
+}
+
+local KEY_NAMES_TO_BIND = 
+{
+    ['ctrl']  = '^',
+    ['alt']   = '!',
+    ['win']   = '@',
+    ['apps']  = '#',
+    ['shift'] = '~'
+}
+
+function make_human_readable_key(bind)
+    for k, v in pairs(BINDS_TO_KEY_NAME) do
+        --print('%s: sub %s with %s':format(bind, k, v))
+
+        bind = bind:gsub(
+            (k == '^' and '%' or '') .. k, 
+            (v .. '+')
+        )
+    end
+
+    return bind
+end
+
 function window_slot_to_key_bind(slot)
     if type(slot) ~= 'number' or slot < 0 or slot >= 30 then
         return
@@ -9,31 +40,63 @@ function window_slot_to_key_bind(slot)
     -- #	Apps
     -- ~	Shift
 
-    local slot_key = slot % 10
+    shared_settings.windows = shared_settings.windows or {}
+    shared_settings.windows.groupkeys = shared_settings.windows.groupkeys or {}
+    shared_settings.windows.binds = shared_settings.windows.binds or {}
 
-    if slot < 10 then       -- Win+Shift
-        return '@~%d':format(slot_key), 'Win+Shift+%d':format(slot_key)
-    elseif slot < 20 then   -- Win+Alt
-        return '@!%d':format(slot_key), 'Win+Alt+%d':format(slot_key)
-    elseif slot < 30 then   -- Win+Ctrl
-        return '@^%d':format(slot_key), 'Win+Ctrl+%d':format(slot_key)
+    local slot_key = slot % 10
+    local base = nil
+
+    if slot < 10 then      
+        base = shared_settings.windows.groupkeys[1] or '@~' -- Win+Shift   
+    elseif slot < 20 then   
+        base = shared_settings.windows.groupkeys[2] or '@!' -- Win+Alt
+    elseif slot < 30 then
+        base = shared_settings.windows.groupkeys[3] or '@^' -- Win+Ctrl
+    end
+
+    if base then
+        local bind = '%s%d':format(base, slot)
+        return bind, make_human_readable_key(bind)
     end
 end
 
-function window_bind_keys(skip_clear)
+function window_unbind_keys(skip_bound, skip_unbound)
+    return window_bind_keys('clear', skip_bound, skip_unbound)
+end
+
+function window_bind_keys(mode, skip_bound, skip_unbound)
     shared_settings.windows = shared_settings.windows or {}
+    shared_settings.windows.groupkeys = shared_settings.windows.groupkeys or {}
     shared_settings.windows.binds = shared_settings.windows.binds or {}
+
+    local clearing = mode == 'clear'
+
+    -- Experiment: If no actual value was provided for skip_unbound, we will behave
+    -- as if skip was configured. This is to avoid removing keys that we did not set.
+    if skip_unbound == nil then
+        skip_unbound = true
+    end
 
     for slot = 0, 29 do
         local key = window_slot_to_key_bind(slot)
         if key then
             local bind = shared_settings.windows.binds[tostring(slot)]
-            if bind and type(bind) == 'table' and bind.names then
-                --print('bind %s hk window activate %s':format(key, bind.names))
-                windower.send_command('bind %s hk window activate %s':format(key, bind.names))
+            if 
+                bind and
+                type(bind) == 'table' and
+                bind.names 
+            then
+                if clearing then
+                    -- Clear mode: We take all the binds and remove them
+                    windower.send_command('unbind %s':format(key))
+                elseif not skip_bound then
+                    -- Bind mode: We bind keys to their respective command
+                    windower.send_command('bind %s hk window activate %s':format(key, bind.names))
+                end
             else
-                if not skip_clear then
-                    --print('unbind %s;':format(key))
+                if not skip_unbound then
+                    -- This key is not bound, we will unbind it (unless told to skip unbinds)
                     windower.send_command('unbind %s;':format(key))
                 end
             end
@@ -44,6 +107,10 @@ end
 function command_window(command, args)
     command = (command or ''):lower()
     args = args or {}
+
+    shared_settings.windows = shared_settings.windows or {}
+    shared_settings.windows.groupkeys = shared_settings.windows.groupkeys or {}
+    shared_settings.windows.binds = shared_settings.windows.binds or {}
 
     if command == 'activate' then
         for i, name in ipairs(args) do
@@ -64,9 +131,6 @@ function command_window(command, args)
 
         writeMessage(text_warning('Could not evaluate the success of your activation.'))
     elseif command == 'show' then
-        shared_settings.windows = shared_settings.windows or {}
-        shared_settings.windows.binds = shared_settings.windows.binds or {}
-
         local sorted_keys = {}
         for key in pairs(shared_settings.windows.binds) do
             local num = tonumber(key)
@@ -93,9 +157,6 @@ function command_window(command, args)
             end
         end
     elseif command == 'reset' then
-        shared_settings.windows = shared_settings.windows or {}
-        shared_settings.windows.binds = {}
-
         saveSettings()
         writeMessage('Successfully cleared all window slots!')
 
@@ -105,9 +166,6 @@ function command_window(command, args)
             writeMessage(text_warning('The window clear command requires a slot number from 0-29.'))
             return
         end
-
-        shared_settings.windows = shared_settings.windows or {}
-        shared_settings.windows.binds = shared_settings.windows.binds or {}
 
         shared_settings.windows.binds[tostring(num)] = nil
         
@@ -128,9 +186,6 @@ function command_window(command, args)
 
         local names = { table.unpack(args, 2) }
 
-        shared_settings.windows = shared_settings.windows or {}
-        shared_settings.windows.binds = shared_settings.windows.binds or {}
-
         shared_settings.windows.binds[tostring(num)] = { names = table.concat(names, ' ') }
         saveSettings()
 
@@ -141,5 +196,39 @@ function command_window(command, args)
             text_number('#' .. num),
             text_player(shared_settings.windows.binds[tostring(num)].names)
         ))
+    elseif command == 'groupkey' or command == 'gk' then
+        local group = tonumber(args[1])
+        if not group then
+            writeMessage('Binds can be built by combining the following base keys: ')
+            for key, name in pairs(BINDS_TO_KEY_NAME) do
+                writeMessage('  %s for %s':format(
+                    text_yellow(key),
+                    text_green(name)))
+            end
+
+            return
+        end
+
+        local base_bind = args[2]
+        if type(base_bind) ~= 'string' then
+            return
+        end
+
+        if group == 1 or group == 2 or group == 3 then
+            window_unbind_keys()
+
+            if group == 1 then
+                shared_settings.windows.groupkeys[1] = base_bind
+            elseif group == 2 then
+                shared_settings.windows.groupkeys[2] = base_bind
+            elseif group == 3 then
+                shared_settings.windows.groupkeys[3] = base_bind
+            end
+
+            saveSettings()
+
+            -- Force other logged in alts to reload
+            windower.send_command('send @others hk reload')
+        end
     end
 end

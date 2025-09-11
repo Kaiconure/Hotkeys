@@ -98,26 +98,27 @@ function syscommand_movementspeed()
             windower.send_command('input /mount "' .. mount .. '";')
         end
     else
-        local speedCommand = ''
+        -- local speedCommand = ''
 
-        if isJobLevel(player, 'DNC', 70) then
-            speedCommand = 'input /ja "Chocobo Jig II" <me>;';
-        elseif isJobLevel(player, 'DNC', 55) then
-            speedCommand = 'input /ja "Chocobo Jig" <me>;';
-        elseif isJobLevel(player, 'BRD', 73) then
-            speedCommand = 'input /ma "Chocobo Mazurka" <me>;';
-        elseif isJobLevel(player, 'BRD', 37) then
-            speedCommand = 'input /ma "Raptor Mazurka" <me>;';
-        elseif isJobLevel(player, 'THF', 25) then
-            speedCommand = 'input /ja "Flee" <me>;';
-        end
+        -- if isJobLevel(player, 'DNC', 70) then
+        --     speedCommand = 'input /ja "Chocobo Jig II" <me>;';
+        -- elseif isJobLevel(player, 'DNC', 55) then
+        --     speedCommand = 'input /ja "Chocobo Jig" <me>;';
+        -- elseif isJobLevel(player, 'BRD', 73) then
+        --     speedCommand = 'input /ma "Chocobo Mazurka" <me>;';
+        -- elseif isJobLevel(player, 'BRD', 37) then
+        --     speedCommand = 'input /ma "Raptor Mazurka" <me>;';
+        -- elseif isJobLevel(player, 'THF', 25) then
+        --     speedCommand = 'input /ja "Flee" <me>;';
+        -- end
 
-        if speedCommand ~= '' then
-            writeMessage('Mounts unavailable, using movement speed job skill instead!')
-            windower.send_command(speedCommand)
-        else
-            writeError('No movement speed options are available.')
-        end
+        -- if speedCommand ~= '' then
+        --     writeMessage('Mounts unavailable, using movement speed job skill instead!')
+        --     windower.send_command(speedCommand)
+        -- else
+        --     writeError('No movement speed options are available.')
+        -- end
+        writeWarning('Mounting is not allowed in this zone.')
     end
 end
 
