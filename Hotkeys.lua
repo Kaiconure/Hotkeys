@@ -192,6 +192,8 @@ windower.register_event('addon command', function (command, ...)
         handler = command_gear
     elseif command == 'windows' or command == 'window' or command == 'win' then
         handler = command_window
+    elseif command == 'echo' then
+        writeMessage(table.concat(args, ' '))
     end
 
     if handler ~= nil then

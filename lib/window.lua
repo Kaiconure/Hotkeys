@@ -9,12 +9,14 @@ function window_slot_to_key_bind(slot)
     -- #	Apps
     -- ~	Shift
 
+    local slot_key = slot % 10
+
     if slot < 10 then       -- Win+Shift
-        return '@~%d':format(slot), 'Win+Shift+%d':format(slot)
+        return '@~%d':format(slot_key), 'Win+Shift+%d':format(slot_key)
     elseif slot < 20 then   -- Win+Alt
-        return '!~%d':format(slot), 'Win+Alt+%d':format(slot)
+        return '@!%d':format(slot_key), 'Win+Alt+%d':format(slot_key)
     elseif slot < 30 then   -- Win+Ctrl
-        return '^~%d':format(slot), 'Win+Ctrl+%d':format(slot)
+        return '@^%d':format(slot_key), 'Win+Ctrl+%d':format(slot_key)
     end
 end
 
@@ -27,9 +29,11 @@ function window_bind_keys(skip_clear)
         if key then
             local bind = shared_settings.windows.binds[tostring(slot)]
             if bind and type(bind) == 'table' and bind.names then
+                --print('bind %s hk window activate %s':format(key, bind.names))
                 windower.send_command('bind %s hk window activate %s':format(key, bind.names))
             else
                 if not skip_clear then
+                    --print('unbind %s;':format(key))
                     windower.send_command('unbind %s;':format(key))
                 end
             end
@@ -47,6 +51,7 @@ function command_window(command, args)
                 local success = hotkeys_native.activate_window(name, "pol.exe")
                 if success then
                     writeMessage('Sending activation notification to: %s':format(text_player(name)))
+                    windower.send_command('send %s hk echo Window activation received!':format(name))
                     return
                 end
             end
