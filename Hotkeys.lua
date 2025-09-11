@@ -212,7 +212,7 @@ windower.register_event('addon command', function (command, ...)
         handler = command_targeting
     elseif command == 'echo' then
         -- The echo command simply outputs whatever message you sent to the addon
-        writeMessage(table.concat(args, ' '))
+        writeMessage(text_cornsilk(table.concat(args, ' ')))
     end
 
     if handler ~= nil then

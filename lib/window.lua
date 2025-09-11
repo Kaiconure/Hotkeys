@@ -118,7 +118,7 @@ function command_window(command, args)
                 local success = hotkeys_native.activate_window(name, "pol.exe")
                 if success then
                     writeMessage('Sending activation notification to: %s':format(text_player(name)))
-                    windower.send_command('send %s hk echo Window activation received!':format(name))
+                    windower.send_command('send %s hk echo ===== Window Activation Received from Hotkeys =====':format(name))
                     return
                 end
             end
@@ -129,7 +129,7 @@ function command_window(command, args)
             end
         end
 
-        writeMessage(text_warning('Could not evaluate the success of your activation.'))
+        --writeMessage(text_warning('Could not evaluate the success of your activation.'))
     elseif command == 'show' then
         local sorted_keys = {}
         for key in pairs(shared_settings.windows.binds) do
@@ -140,6 +140,11 @@ function command_window(command, args)
         end
 
         table.sort(sorted_keys)
+
+        if #sorted_keys == 0 then
+            writeWarning('No keybinds have been configured yet.')
+            return
+        end
 
         for i = 1, #sorted_keys do
             local num = sorted_keys[i]
@@ -157,19 +162,29 @@ function command_window(command, args)
             end
         end
     elseif command == 'reset' then
+        shared_settings.windows.binds = {}
+        shared_settings.windows.groupkeys = {}
+
         saveSettings()
+
+        -- Force other logged in alts to reload
+        windower.send_command('send @others hk reload')
+
         writeMessage('Successfully cleared all window slots!')
 
-    elseif command == 'clear' then
+    elseif command == 'unset' or command == 'clear' then
         local num = tonumber(args[1]) or -1
         if num < 0 or num >= 30 then
-            writeMessage(text_warning('The window clear command requires a slot number from 0-29.'))
+            writeMessage(text_warning('This command requires a slot number from 0-29.'))
             return
         end
 
-        shared_settings.windows.binds[tostring(num)] = nil
-        
+        shared_settings.windows.binds[tostring(num)] = nil        
         saveSettings()
+
+        -- Force other logged in alts to reload
+        windower.send_command('send @others hk reload')
+
         writeMessage('Successfully cleared window slot %s':format(text_number('#' .. num)))
 
     elseif command == 'set' then
@@ -209,26 +224,38 @@ function command_window(command, args)
             return
         end
 
-        local base_bind = args[2]
-        if type(base_bind) ~= 'string' then
+        if group ~= 1 and group ~= 2 and group ~= 3 then
+            writeWarning('A group value of 1, 2, or 3 must be specified.')
             return
         end
 
-        if group == 1 or group == 2 or group == 3 then
-            window_unbind_keys()
-
-            if group == 1 then
-                shared_settings.windows.groupkeys[1] = base_bind
-            elseif group == 2 then
-                shared_settings.windows.groupkeys[2] = base_bind
-            elseif group == 3 then
-                shared_settings.windows.groupkeys[3] = base_bind
-            end
-
-            saveSettings()
-
-            -- Force other logged in alts to reload
-            windower.send_command('send @others hk reload')
+        local base_bind = args[2]
+        if type(base_bind) ~= 'string' then
+            writeWarning('A binding string for the group must be specified.')
+            return
         end
+
+        window_unbind_keys()
+
+        if group == 1 then
+            shared_settings.windows.groupkeys[1] = base_bind
+        elseif group == 2 then
+            shared_settings.windows.groupkeys[2] = base_bind
+        elseif group == 3 then
+            shared_settings.windows.groupkeys[3] = base_bind
+        else
+        end
+
+        saveSettings()
+
+        -- Force other logged in alts to reload
+        windower.send_command('send @others hk reload')
+
+        local hk = make_human_readable_key(base_bind)
+        writeMessage('Bound group %s to key [%s] [%s]':format(
+            text_number('#' .. group),
+            text_green(hk),
+            text_yellow(base_bind)
+        ))
     end
 end
