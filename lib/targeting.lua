@@ -65,8 +65,15 @@ local function do_activate(args)
         })
 
         packets.inject(packet)
-        coroutine.sleep(0.667)
+        coroutine.sleep(1.0)
         if globals.latest_npc_activation > start then
+            -- An activation packet was received after we started, we're done activating
+            return true
+        end
+
+        local player = windower.ffxi.get_player()
+        if player.status == 4 then
+            -- Switched to event status, we're done activating
             return true
         end
     end

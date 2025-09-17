@@ -66,6 +66,10 @@ function window_unbind_keys(skip_bound, skip_unbound)
 end
 
 function window_bind_keys(mode, skip_bound, skip_unbound)
+    -- This sleep is required due to a commands race condition. Occasionally, the unbinds from a
+    -- previous step would get executed after the binds from this step. I don't understand.
+    coroutine.sleep(1)
+
     shared_settings.windows = shared_settings.windows or {}
     shared_settings.windows.groupkeys = shared_settings.windows.groupkeys or {}
     shared_settings.windows.binds = shared_settings.windows.binds or {}
@@ -79,6 +83,7 @@ function window_bind_keys(mode, skip_bound, skip_unbound)
     end
 
     for slot = 0, 29 do
+        local command = nil
         local key = window_slot_to_key_bind(slot)
         if key then
             local bind = shared_settings.windows.binds[tostring(slot)]
@@ -89,17 +94,22 @@ function window_bind_keys(mode, skip_bound, skip_unbound)
             then
                 if clearing then
                     -- Clear mode: We take all the binds and remove them
-                    windower.send_command('unbind %s':format(key))
+                    command = 'unbind %s':format(key)
                 elseif not skip_bound then
                     -- Bind mode: We bind keys to their respective command
-                    windower.send_command('bind %s hk window activate %s':format(key, bind.names))
+                    command = 'bind %s hk window activate %s':format(key, bind.names)
                 end
             else
                 if not skip_unbound then
                     -- This key is not bound, we will unbind it (unless told to skip unbinds)
-                    windower.send_command('unbind %s;':format(key))
+                    command = 'unbind %s;':format(key)
                 end
             end
+        end
+
+        if command then
+            --print('command: [%s]':format(command))
+            windower.send_command(command)
         end
     end
 end
@@ -115,6 +125,7 @@ function command_window(command, args)
     if command == 'activate' then
         for i, name in ipairs(args) do
             if name then
+                --print('evaluating name: %s':format(name))
                 local success = hotkeys_native.activate_window(name, "pol.exe")
                 if success then
                     writeMessage('Sending activation notification to: %s':format(text_player(name)))
@@ -199,9 +210,10 @@ function command_window(command, args)
             return
         end
 
-        local names = { table.unpack(args, 2) }
+        local names = { table.unpack(args, 2, #args) }
 
         shared_settings.windows.binds[tostring(num)] = { names = table.concat(names, ' ') }
+
         saveSettings()
 
         -- Force other logged in alts to reload

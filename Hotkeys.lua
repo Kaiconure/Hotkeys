@@ -1,4 +1,4 @@
-_addon.version = '1.0.4'
+_addon.version = '1.0.5'
 _addon.name = 'Hotkeys'
 _addon.author = 'LeileDev'
 _addon.commands = { 'hotkeys', 'hk' }
@@ -277,6 +277,7 @@ windower.register_event('incoming chunk', function (id, data)
     if
         arrayIndexOf(NPC_ACTIVATION_PACKETS, id)
     then
+        --print('Activation chunk received with id = %d / %03X':format(id, id))
         globals.latest_npc_activation = os.clock()
      end
 end)

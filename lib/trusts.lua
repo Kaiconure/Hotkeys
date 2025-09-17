@@ -27,7 +27,9 @@ local function doCallTrusts(setName)
     local trusts  = getTrustsInSet(setName)
 
     if trusts == nil then
-        writeError('No matching trust set is configured. Use [//hotkeys trust help] to learn more.')
+        writeWarning('No matching trust set is configured. Use %s for available commands.':format(
+            text_command('//hk trust', Colors.warning)
+        ))
         return
     end
 
@@ -177,6 +179,32 @@ function command_trust(command, args)
             local count = #trusts
             writeMessage('  - ' .. text_trustset(set) .. ': ' .. pluralize(count, 'trust', 'trusts'))
         end
+    elseif command == 'delete' then
+        local set = args[1]
+        if type(set) ~= 'string' then
+            writeWarning('You must specify the name of the set to delete.')
+            return
+        end
+
+        if not settings.trust.sets[set] then
+            writeWarning('Could not find trust set: %s':format(text_trustset(set, Colors.warning)))
+            return
+        end
+
+        if set == 'default' then
+            writeWarning('The default trust set cannot be deleted.')
+            return
+        end
+
+        settings.trust.sets[set] = nil
+        if settings.trust.current == set then
+            settings.trust.current = 'default'
+        end
+        
+        saveSettings()
+
+        writeMessage('Successfully deleted trust set: %s':format(text_trustset(set)))
+
     else -- if command == 'help' then
         writeMessage('Help: Trust')
         writeMessage('  Description: Manage named sets of trusts to be called on demand.')
@@ -195,6 +223,8 @@ function command_trust(command, args)
             'set that is specified. A new set will be created if necessary.')
         writeCommandInfo('list [<set-name>]',
             'Lists all trusts in the current set, or in the specified set.')
+        writeCommandInfo('delete <set-name>',
+            'Deletes the trust set with the specified name.')
         writeCommandInfo('sets',
             'Lists all configured sets.')
     end
