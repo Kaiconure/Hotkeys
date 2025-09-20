@@ -141,7 +141,7 @@ function command_window(command, args)
         end
 
         --writeMessage(text_warning('Could not evaluate the success of your activation.'))
-    elseif command == 'show' then
+    elseif command == 'show' or command == 'list' then
         local sorted_keys = {}
         for key in pairs(shared_settings.windows.binds) do
             local num = tonumber(key)

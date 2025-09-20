@@ -1,4 +1,4 @@
-_addon.version = '1.0.5'
+_addon.version = '1.0.6'
 _addon.name = 'Hotkeys'
 _addon.author = 'LeileDev'
 _addon.commands = { 'hotkeys', 'hk' }
@@ -266,6 +266,7 @@ local NPC_ACTIVATION_PACKETS =
     0x032,      -- NPC Interaction 1
     0x033,      -- String NPC Interaction
     0x034,      -- NPC Interaction 2
+    0x03E,      -- Open buy/sell
     0x04C,      -- Auction House Menu
     --0x052,      -- NPC Release
     --0x05C       -- Dialogue Information
@@ -277,7 +278,36 @@ windower.register_event('incoming chunk', function (id, data)
     if
         arrayIndexOf(NPC_ACTIVATION_PACKETS, id)
     then
-        --print('Activation chunk received with id = %d / %03X':format(id, id))
+        -- Certain packets require additional verification based on packet data
+        if 
+            id == 0x032 or
+            id == 0x033 or
+            id == 0x034 
+        then
+            local packet = packets.parse('incoming', data)
+            if
+                not packet or
+                packet.NPC ~= globals.activating_npc_id
+            then
+                --print('Received activation packet %03X from the wrong NPC!':format(id))
+                return
+            end
+        end
+
+        -- writeJsonToFile(
+        --     './data/packets/%03X/%s.%d.json':format(id, windower.ffxi.get_player().name, os.clock()), 
+        --     packets.parse('incoming', data)
+        -- )
+        -- print('Activation chunk received with id = %d / %03X':format(id, id))
         globals.latest_npc_activation = os.clock()
-     end
+    else
+        -- if 
+        --     id ~= 0x00D and
+        --     id ~= 0x00E and
+        --     id ~= 0x067 and
+        --     id ~= 0x05B
+        -- then
+        --     print('Packet received: %d / %03X':format(id, id))
+        -- end
+    end
 end)

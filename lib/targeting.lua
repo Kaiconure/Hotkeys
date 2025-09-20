@@ -64,16 +64,23 @@ local function do_activate(args)
             ["_unknown1"] = 0
         })
 
+        globals.activating_npc_id = t.id
+
         packets.inject(packet)
         coroutine.sleep(1.0)
+        
         if globals.latest_npc_activation > start then
             -- An activation packet was received after we started, we're done activating
+            --print('Exiting activation due to packet event.')
             return true
         end
 
         local player = windower.ffxi.get_player()
-        if player.status == 4 then
+        if 
+            player.status == 4  -- Event/npc menu
+        then
             -- Switched to event status, we're done activating
+            --print('Exiting activation due to status change.')
             return true
         end
     end

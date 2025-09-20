@@ -158,7 +158,7 @@ local function equipGear(args)
 
     local strict = anyI('strict', args)
     local silent = anyI('silent', args)
-    local noWeapons = anyI('no-weapons', args)
+    local noWeapons = anyI('no-weapons', args) or anyI('save-tp', args)
 
     local command = ''
 
