@@ -1,3 +1,20 @@
+local function getKnownMounts()
+    local abilities = windower.ffxi.get_abilities()
+    local mounts = abilities and abilities.mounts or {}
+
+    local mountsById = {}
+    local mountsByName = {}
+    for _, id in pairs(mounts) do
+        local mount = resources.mounts[id]
+        if mount then
+            mountsById[id] = mount
+            mountsByName[mount.name:lower()] = mount
+        end
+    end
+
+    return mountsById, mountsByName
+end
+
 --------------------------------------------------------------------------------------
 -- BEGIN subcommand handlers
 local function listMounts()
@@ -13,13 +30,22 @@ local function addMount(mountName)
         return
     end
 
-    local existingIndex = arrayIndexOfStrI(settings.preferredMounts, mountName)
-    if existingIndex ~= nil then
-        writeMessage('The mount ' .. text_mount(mountName) .. ' is already included!')
+    local mountName = mountName:lower()
+    local mountsById, mountsByName = getKnownMounts()
+    local mount = mountsByName[mountName]
+
+    if mount == nil then
+        writeMessage('The mount ' .. text_mount(mountName) .. ' is invalid or unknown!')
         return
     end
 
-    settings.preferredMounts[#settings.preferredMounts + 1] = mountName
+    local existingIndex = arrayIndexOfStrI(settings.preferredMounts, mountName)
+    if existingIndex ~= nil then
+        writeMessage('The mount ' .. text_mount(mount.name) .. ' is already included!')
+        return
+    end
+
+    table.insert(settings.preferredMounts, mount.name)
     saveSettings()
 
     listMounts()

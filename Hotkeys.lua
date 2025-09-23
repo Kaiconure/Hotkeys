@@ -1,6 +1,6 @@
-_addon.version = '1.0.6'
+_addon.version = '1.0.7'
 _addon.name = 'Hotkeys'
-_addon.author = 'LeileDev'
+_addon.author = '@Kaiconure'
 _addon.commands = { 'hotkeys', 'hk' }
 
 -- Setup the DLL load path
@@ -12,6 +12,8 @@ globals = {
 }
 
 hotkeys_native = require('hotkeys_native')
+
+require('sets')
 
 packets = require('packets')
 resources = require('resources')
@@ -266,6 +268,7 @@ local NPC_ACTIVATION_PACKETS =
     0x032,      -- NPC Interaction 1
     0x033,      -- String NPC Interaction
     0x034,      -- NPC Interaction 2
+    0x036,      -- NPC chat
     0x03E,      -- Open buy/sell
     0x04C,      -- Auction House Menu
     --0x052,      -- NPC Release
@@ -282,12 +285,15 @@ windower.register_event('incoming chunk', function (id, data)
         if 
             id == 0x032 or
             id == 0x033 or
-            id == 0x034 
+            id == 0x034 or
+            is == 0x036
         then
             local packet = packets.parse('incoming', data)
             if
-                not packet or
-                packet.NPC ~= globals.activating_npc_id
+                not packet or (
+                    packet.NPC ~= globals.activating_npc_id and     -- Some events send the NPC id in a NPC field
+                    packet.Actor ~= globals.activating_npc_id       -- Some other events send the NPC id in an Actor field
+                )
             then
                 --print('Received activation packet %03X from the wrong NPC!':format(id))
                 return

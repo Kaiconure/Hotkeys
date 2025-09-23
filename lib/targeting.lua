@@ -32,7 +32,7 @@ local function do_activate(args)
         t == nil
         or not t.valid_target
         or t.distance >= (6 * 6)                        -- Distance must be less than 6 for activation to proceed
-        or (t.spawn_type ~= 2 and t.spawn_type ~= 34)   -- 2 is npcs, 32 is certain dorways/levers/portal points
+        or (t.spawn_type ~= 2 and t.spawn_type ~= 34)   -- 2 is npcs, 34 is certain dorways/levers/portal points
     then
         --writeMessage(text_warning('A valid activation target could not be determined.'))
         return
@@ -82,6 +82,13 @@ local function do_activate(args)
             -- Switched to event status, we're done activating
             --print('Exiting activation due to status change.')
             return true
+        end
+
+        if
+            player.status ~= 0
+        then
+            writeMessage(text_warning('Unable to continue activation due to player status.'))
+            return false
         end
     end
 
