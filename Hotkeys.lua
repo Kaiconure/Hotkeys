@@ -1,4 +1,4 @@
-_addon.version = '1.0.7'
+_addon.version = '1.0.8'
 _addon.name = 'Hotkeys'
 _addon.author = '@Kaiconure'
 _addon.commands = { 'hotkeys', 'hk' }
@@ -272,7 +272,7 @@ local NPC_ACTIVATION_PACKETS =
     0x03E,      -- Open buy/sell
     0x04C,      -- Auction House Menu
     --0x052,      -- NPC Release
-    --0x05C       -- Dialogue Information
+    0x05C       -- Dialogue Information
 }
 
 ---------------------------------------------------------------------
@@ -286,13 +286,15 @@ windower.register_event('incoming chunk', function (id, data)
             id == 0x032 or
             id == 0x033 or
             id == 0x034 or
-            is == 0x036
+            id == 0x036 or
+            id == 0x05C
         then
             local packet = packets.parse('incoming', data)
             if
                 not packet or (
-                    packet.NPC ~= globals.activating_npc_id and     -- Some events send the NPC id in a NPC field
-                    packet.Actor ~= globals.activating_npc_id       -- Some other events send the NPC id in an Actor field
+                    packet.NPC ~= globals.activating_npc_id and         -- Some events send the NPC id in a NPC field
+                    packet.Actor ~= globals.activating_npc_id and       -- Some other events send the NPC id in an Actor field
+                    packet['Target ID'] ~= globals.activating_npc_id    -- Some other events send the NPC id in a Target ID field
                 )
             then
                 --print('Received activation packet %03X from the wrong NPC!':format(id))
@@ -300,18 +302,16 @@ windower.register_event('incoming chunk', function (id, data)
             end
         end
 
-        -- writeJsonToFile(
-        --     './data/packets/%03X/%s.%d.json':format(id, windower.ffxi.get_player().name, os.clock()), 
-        --     packets.parse('incoming', data)
-        -- )
-        -- print('Activation chunk received with id = %d / %03X':format(id, id))
         globals.latest_npc_activation = os.clock()
     else
         -- if 
+        --     shared_settings.debug and
         --     id ~= 0x00D and
         --     id ~= 0x00E and
         --     id ~= 0x067 and
-        --     id ~= 0x05B
+        --     id ~= 0x05B and
+        --     id ~= 0x063 and
+        --     id ~= 0x0DF
         -- then
         --     print('Packet received: %d / %03X':format(id, id))
         -- end
