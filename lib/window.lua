@@ -123,20 +123,37 @@ function command_window(command, args)
     shared_settings.windows.binds = shared_settings.windows.binds or {}
 
     if command == 'activate' then
-        for i, name in ipairs(args) do
-            if name then
-                --print('evaluating name: %s':format(name))
-                local success = hotkeys_native.activate_window(name, "pol.exe")
-                if success then
-                    writeMessage('Sending activation notification to: %s':format(text_player(name)))
-                    windower.send_command('send %s hk echo ===== Window Activation Received from Hotkeys =====':format(name))
-                    return
+        -- for i, name in ipairs(args) do
+        --     if name then
+        --         --print('evaluating name: %s':format(name))
+        --         local success = hotkeys_native.activate_window(name, "pol.exe")
+        --         if success then
+        --             writeMessage('Sending activation notification to: %s':format(text_player(name)))
+        --             windower.send_command('send %s hk echo ===== Window Activation Received from Hotkeys =====':format(name))
+        --             return
+        --         end
+        --     end
+
+        --     -- Let's not take over the entire CPU here
+        --     if i % 4 == 0 then
+        --         coroutine.sleep(0.1)
+        --     end
+        -- end
+
+        if #args == 0 then
+            writeMessage(text_cornsilk('===== Window Activation Received from Hotkeys ====='))
+            windower.take_focus()
+        else
+            local command = ''
+            for i, name in ipairs(args) do
+                --print('[%s]':format(name))
+                if name then
+                    command = command .. 'send %s hk window activate;':format(name)
                 end
             end
 
-            -- Let's not take over the entire CPU here
-            if i % 4 == 0 then
-                coroutine.sleep(0.1)
+            if command ~= '' then
+                windower.send_command(command)
             end
         end
 
