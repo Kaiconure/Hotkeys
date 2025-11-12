@@ -174,6 +174,7 @@ text_spell                = text_gold
 text_number               = text_cornsilk
 text_target               = text_cornsilk
 text_gearslot             = text_cornsilk
+text_augment              = text_green
 text_item                 = text_magenta
 text_command              = text_green
 text_description          = text_cornsilk

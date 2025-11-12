@@ -1,4 +1,4 @@
-_addon.version = '1.0.8'
+_addon.version = '1.1.0'
 _addon.name = 'Hotkeys'
 _addon.author = '@Kaiconure'
 _addon.commands = { 'hotkeys', 'hk' }
@@ -19,6 +19,7 @@ packets = require('packets')
 resources = require('resources')
 files = require('files')
 json = require('jsonlua')
+extdata = require('extdata')
 
 require('lib/helpers')
 require('lib/settings')

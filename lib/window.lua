@@ -210,10 +210,7 @@ function command_window(command, args)
             return
         end
 
-        local names = { }
-        for i = 2, #args do
-            table.insert(names, args[i])
-        end
+        local names = { unpack(args, 2) }
 
         shared_settings.windows.binds[tostring(num)] = { names = table.concat(names, ' ') }
 
