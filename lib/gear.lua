@@ -64,6 +64,10 @@ local ITEM_STATUS_BAZAAR        = 25
 -- invalid/empty values. Returns true only if there were valid
 -- augments found in the extdata entry.
 local function sanitizeAugments(ext)
+    if ext and ext.augments == nil then
+        ext.augments = {}
+    end
+
     if
         ext and
         type(ext) == 'table' and
@@ -98,6 +102,11 @@ end
 -- of those appears in a list of available augments for a given item.
 -- Returns true only if all required augments are available.
 local function hasRequiredAugments(allRequired, allAvailable)
+    
+    -- Use an empty table if any of the augment lists are nil
+    allRequired = allRequired or {}
+    allAvailable = allAvailable or {}
+    
     for i, required in ipairs(allRequired) do
         local hasMatch = false
 
