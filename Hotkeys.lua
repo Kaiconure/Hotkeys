@@ -1,4 +1,4 @@
-_addon.version = '1.1.0'
+_addon.version = '1.1.0a'
 _addon.name = 'Hotkeys'
 _addon.author = '@Kaiconure'
 _addon.commands = { 'hotkeys', 'hk' }
@@ -198,6 +198,14 @@ windower.register_event('addon command', function (command, ...)
     end
 
     local handler = nil
+
+    -------------------------------------------------------------------------------------
+    -- Shortcuts
+    if command == 'equip' then
+        -- Convert 'equip' commands to their corresponding gear equip commands
+        command = 'gear'
+        table.insert(args, 1, 'equip')
+    end
 
     -------------------------------------------------------------------------------------
     -- Addon commands
