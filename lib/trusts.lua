@@ -46,7 +46,7 @@ local function doCallTrusts(setName)
     for i, name in pairs(trusts) do
         writeMessage('  ' .. i .. ': ' .. text_trust(name))
         command = command ..
-            'input /ma "' .. name .. '";' ..
+            'input /ma "' .. name .. '" <me>;' ..
             'wait 6;'
     end
 

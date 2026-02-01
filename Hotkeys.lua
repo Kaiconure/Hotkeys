@@ -1,4 +1,4 @@
-_addon.version = '1.1.0a'
+_addon.version = '1.1.2'
 _addon.name = 'Hotkeys'
 _addon.author = '@Kaiconure'
 _addon.commands = { 'hotkeys', 'hk' }
@@ -135,8 +135,6 @@ function load()
         newSettings.windows = newSettings.windows or {}
     end
 
-    settings = newSettings
-
     new_shared_settings = {}
     local shared_settings_file_name = getSettingsFileName('_all')
     file = files.new(shared_settings_file_name)
@@ -144,7 +142,9 @@ function load()
         new_shared_settings = json.parse(file:read()) or new_shared_settings
     end
 
+    settings = newSettings
     shared_settings = new_shared_settings
+    
 
     -- For now we're forcing the settings language to English
     settings.language = (settings.language or 'en') -- windower.ffxi.get_info().language

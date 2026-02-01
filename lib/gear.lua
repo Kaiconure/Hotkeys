@@ -60,6 +60,17 @@ local ITEM_STATUS_LS_EQUIPPED   = 19
 local ITEM_STATUS_BAZAAR        = 25
 
 -------------------------------------------------------------------------------
+-- Gets the first item in a set. Note that if the table is not an array,
+-- the actual item returned may not be predictable.
+local function tableFirst(t)
+    if type(t) == 'table' then
+        for key, val in pairs(t) do
+            return val
+        end
+    end
+end
+
+-------------------------------------------------------------------------------
 -- Examine any augments on the item extdata value, stripping any
 -- invalid/empty values. Returns true only if there were valid
 -- augments found in the extdata entry.
@@ -127,9 +138,9 @@ end
 
 -------------------------------------------------------------------------------
 -- Find an equipable item based on a gear set item info entry
-local function findEquipableItem(itemInfo, all_items)
+local function findEquipableItem(globalId, itemInfo, all_items)
     -- Cannot proceed if we don't have an item to look for
-    if not itemInfo or not itemInfo.globalId then
+    if not globalId or not itemInfo then
         return
     end
 
@@ -153,7 +164,7 @@ local function findEquipableItem(itemInfo, all_items)
                 if
                     type(bagItem) == 'table' and
                     bagItem.status == ITEM_STATUS_NONE and 
-                    bagItem.id == itemInfo.globalId
+                    bagItem.id == globalId
                 then
                     local check_augments = type(itemInfo.augments) == 'table' and #itemInfo.augments > 0
                     local has_all_augments = false
@@ -274,12 +285,20 @@ local function removeGearSet(args)
     local mainJob = player.main_job
     local setFullName = mainJob .. '/' .. setName
 
+    shared_settings.gear = shared_settings.gear or {}
+    shared_settings.gear.sets = shared_settings.gear.sets or {}
+
+    if shared_settings.gear.sets[setName] then
+        writeWarning('The gear set ' .. text_gearset(setName, Colors.warning) .. ' is shared, which cannot be deleted via command.')
+        return
+    end
+
 	settings.gear = settings.gear or {}
     settings.gear.sets = settings.gear.sets or {}
 
     if not settings.gear.sets[mainJob] or not settings.gear.sets[mainJob][setName] then
         writeError('The gear set %s does not exist.':format(
-            text_gearset(setFullName)
+            text_gearset(setFullName, Colors.error)
         ))
         return
     end
@@ -346,6 +365,14 @@ local function saveGear(args)
         return
     end
 
+    shared_settings.gear = shared_settings.gear or {}
+    shared_settings.gear.sets = shared_settings.gear.sets or {}
+
+    if shared_settings.gear.sets[setName] then
+        writeWarning('The gear set ' .. text_gearset(setName, Colors.warning) .. ' is shared, which cannot be saved via command.')
+        return
+    end
+
     local gear = getEquippedGear()
     local gearSet = {}
 
@@ -378,6 +405,16 @@ local function equipGear(args)
         settings.gear.sets[mainJob][setName]
 
     if gearSet == nil then
+        gearSet = shared_settings and
+            shared_settings.gear.sets and
+            shared_settings.gear.sets[setName]
+
+        if gearSet then
+            gearSet._shared = true
+        end
+    end
+
+    if gearSet == nil then
         writeError('A gear set named ' .. text_gearset(setName, Colors.error) .. ' was not found for ' .. text_job(mainJob) .. '.')
         return
     end
@@ -402,14 +439,17 @@ local function equipGear(args)
             -- Skip changes to weapon slots if we've been configured with no weapons
         else
             -- Determine whether a gear item is defined for this slot
-            local isDefined = itemInfo and type(itemInfo.globalId) == 'number' and itemInfo.globalId > 0
+            local isDefined = itemInfo and itemInfo.name -- and type(itemInfo.globalId) == 'number' and itemInfo.globalId > 0
             
             if isDefined then
-                local item = isDefined and resources.items[itemInfo.globalId]
+                local item = isDefined and tableFirst(resources.items:en(itemInfo.name) or resources.items:enl(itemInfo.name) or resources.items:jal(itemInfo.name))
+                --item = type(item) == 'table'
+                --writeJsonToFile('/data/test_item.json', item)
+
                 local canEquipInSlot = item and item.slots and item.slots[slotInfo.id]
 
                 if canEquipInSlot then
-                    local result = findEquipableItem(itemInfo, all_items)
+                    local result = findEquipableItem(item.id, itemInfo, all_items)
                     if result then
 
                         -- Lastly, we will make sure that we're not doing an unnecessary gear change
@@ -449,8 +489,10 @@ local function equipGear(args)
                     end
                 end
             else
-                -- Remove
-                windower.ffxi.set_equip(0, slotInfo.id, 0)
+                -- Remove any undefined gear, unless the gear set is set as a sparse change
+                if not gearSet.sparse then
+                    windower.ffxi.set_equip(0, slotInfo.id, 0)
+                end
             end
         end
     end
@@ -461,7 +503,7 @@ local function equipGear(args)
 
     if not silent then
         writeMessage("Successfully equipped %s with %s swapped!":format(
-            text_gearset(setFullName),
+            text_gearset(gearSet._shared and ('shared/' .. setName) or setFullName),
             pluralize(num_slots_changed, 'gear item', 'gear items')
         ))
     end
@@ -480,6 +522,18 @@ function listGearSets(args)
 
     if gearSets ~= nil then
         for name, set in pairs(gearSets) do
+            hasGearSets = true
+            writeMessage('  ' .. text_gearset(name))
+        end
+    end
+
+    local sharedGearSets = shared_settings and
+        shared_settings.gear and
+        shared_settings.gear.sets
+    if sharedGearSets then
+        writeMessage('Shared gear sets:')
+
+        for name, set in pairs(sharedGearSets) do
             hasGearSets = true
             writeMessage('  ' .. text_gearset(name))
         end
