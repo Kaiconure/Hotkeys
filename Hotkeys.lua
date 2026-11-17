@@ -1,4 +1,4 @@
-_addon.version = '1.1.2'
+_addon.version = '1.2.0'
 _addon.name = 'Hotkeys'
 _addon.author = '@Kaiconure'
 _addon.commands = { 'hotkeys', 'hk' }

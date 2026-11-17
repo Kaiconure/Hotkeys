@@ -114,6 +114,100 @@ function window_bind_keys(mode, skip_bound, skip_unbound)
     end
 end
 
+local function parse_window_order(args)
+    local order = {}
+    local seen = {}
+    for _, value in ipairs(args or {}) do
+        local slot = tonumber(value)
+        if not slot or slot % 1 ~= 0 or slot < 0 or slot >= 30 then
+            return nil, 'Window order slots must be integers from 0-29.'
+        end
+        if seen[slot] then
+            return nil, 'Window order contains duplicate slot #' .. slot .. '.'
+        end
+        seen[slot] = true
+        order[#order + 1] = slot
+    end
+    if #order == 0 then
+        return nil, 'At least one window slot is required.'
+    end
+    return order
+end
+
+local function activate_window_slot(slot)
+    local bind = shared_settings.windows.binds[tostring(slot)]
+    if not bind or type(bind) ~= 'table' or type(bind.names) ~= 'string' then
+        return false, 'Window slot #' .. slot .. ' is not configured.'
+    end
+
+    for name in bind.names:gmatch('%S+') do
+        if hotkeys_native.activate_window(name, 'pol.exe') then
+            return true, name
+        end
+    end
+
+    return false, 'No available window matched slot #' .. slot .. ' [' .. bind.names .. '].'
+end
+
+local function activate_window_order(order)
+    for index, slot in ipairs(order) do
+        local success, result = activate_window_slot(slot)
+        if success then
+            writeMessage('Raised window slot %s: %s':format(text_number('#' .. slot), text_player(result)))
+            local remaining = {}
+            for nextIndex = index + 1, #order do remaining[#remaining + 1] = order[nextIndex] end
+            if #remaining > 0 then
+                coroutine.sleep(0.1)
+                windower.send_command('send %s hk window order continue %s':format(
+                    result,
+                    table.concat(remaining, ' ')
+                ))
+            end
+            return true
+        else
+            writeWarning(result)
+        end
+    end
+    return false
+end
+
+local function command_window_order(args)
+    local action = (args[1] or 'show'):lower()
+    local values = { unpack(args, 2) }
+
+    if action == 'set' then
+        local order, message = parse_window_order(values)
+        if not order then writeWarning(message); return end
+        shared_settings.windows.order = order
+        saveSettings()
+        windower.send_command('send @others hk reload')
+        writeMessage('Window activation order: ' .. table.concat(order, ' -> '))
+    elseif action == 'activate' or action == 'run' or action == 'continue' then
+        local order, message
+        if action == 'continue' and #values == 0 then
+            writeWarning('Window activation continuation did not include any remaining slots.')
+            return
+        elseif #values > 0 then order, message = parse_window_order(values)
+        else order = shared_settings.windows.order end
+        if not order or #order == 0 then
+            writeWarning(message or 'No saved window activation order is configured.')
+            return
+        end
+        activate_window_order(order)
+    elseif action == 'show' or action == 'list' then
+        local order = shared_settings.windows.order
+        if not order or #order == 0 then writeWarning('No saved window activation order is configured.')
+        else writeMessage('Window activation order: ' .. table.concat(order, ' -> ')) end
+    elseif action == 'clear' or action == 'reset' then
+        shared_settings.windows.order = nil
+        saveSettings()
+        windower.send_command('send @others hk reload')
+        writeMessage('Window activation order cleared.')
+    else
+        writeWarning('Usage: hk window order <set|activate|show|clear> [slots...]')
+    end
+end
+
 function command_window(command, args)
     command = (command or ''):lower()
     args = args or {}
@@ -122,7 +216,9 @@ function command_window(command, args)
     shared_settings.windows.groupkeys = shared_settings.windows.groupkeys or {}
     shared_settings.windows.binds = shared_settings.windows.binds or {}
 
-    if command == 'activate' then
+    if command == 'order' then
+        command_window_order(args)
+    elseif command == 'activate' then
         for i, name in ipairs(args) do
             if name then
                 --print('evaluating name: %s':format(name))
@@ -175,6 +271,7 @@ function command_window(command, args)
     elseif command == 'reset' then
         shared_settings.windows.binds = {}
         shared_settings.windows.groupkeys = {}
+        shared_settings.windows.order = nil
 
         saveSettings()
 
